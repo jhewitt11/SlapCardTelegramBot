@@ -27,15 +27,17 @@ class Deck:
 class SlapCard():
     def __init__(self):
 
-        self.players = 5
+        self.enrolled = {}
+        self.players = None
         self.pace = 5 #TODO
         self.winner = -1
         self.pot = []
         self.win_condition_flag = False
-        self.hands = [[] for x in range(self.players)]
+        self.hands = None
         self.deck = Deck().shuffle()
 
     def deal(self):
+        self.hands = [[] for x in range(self.players)]
         for i, card in enumerate(self.deck):
             self.hands[i % self.players].append(card)
 

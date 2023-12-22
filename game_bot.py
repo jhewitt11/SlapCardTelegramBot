@@ -10,12 +10,17 @@ from telegram import Update
 
 
 # Enable logging
-logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO)
+logging.basicConfig(filename = 'app.log',
+                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+                    level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def main() -> None:
+
     my_game = GameBot()
-    my_game.application.run_polling(allowed_updates=Update.ALL_TYPES)
+    my_game.run()
+    
 
 
 if __name__ == "__main__":
