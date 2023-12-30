@@ -1,7 +1,7 @@
 import logging
 import asyncio
 
-from tools.commands import GameBot
+from tools.game_bot import GameBot
 
 
 

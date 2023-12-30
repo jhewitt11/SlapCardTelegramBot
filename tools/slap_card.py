@@ -13,7 +13,7 @@ class Deck:
                         'seven', 'eight', 'nine', 'ten', 'jack',
                         'queen', 'king']
 
-        self.cards = [(suit, value) for suit in self.suits for value in self.values]
+        self.cards = [(value, suit) for suit in self.suits for value in self.values]
 
     def shuffle(self):
         random.shuffle(self.cards)
@@ -22,86 +22,83 @@ class Deck:
 
 
 # pass in player list - class
-# pass in pace
 
 class SlapCard():
     def __init__(self):
 
-        self.enrolled = {}
-        self.players = None
-        self.pace = 5 #TODO
-        self.winner = -1
+        self.player_list = None
+        self.player_count = None
+        self.k = 0      # k is a counter. It does not hold a player specific value, nor does it count turns accurately
+        
         self.pot = []
-        self.win_condition_flag = False
         self.hands = None
         self.deck = Deck().shuffle()
+        self.first_slap_flag = False
 
-    def deal(self):
-        self.hands = [[] for x in range(self.players)]
+        self.winner = -1
+        self.win_condition_flag = False
+
+
+    def prepare_game(self, player_list):
+        self.player_list = player_list
+        self.player_count = len(player_list)
+
+        # deal deck to different hands
+        self.hands = [[] for x in range(self.player_count)]
         for i, card in enumerate(self.deck):
-            self.hands[i % self.players].append(card)
+            self.hands[i % self.player_count].append(card)
 
-    async def monitor_player_input(self):
-        while True:
-            await asyncio.sleep(0.1)
-            for i in range(1, self.players+1):
-                if keyboard.is_pressed(str(i)):
-                    return i
 
-    async def start_game(self):
-        k = 0
-        while self.win_condition_flag == False :
+    def next_card(self):
 
-            # Go to the next player hand that has cards
-            while len(self.hands[k % self.players]) == 0 : 
-                k += 1
+        while len(self.hands[self.k % self.player_count]) == 0:
+            self.k += 1
 
-            card = self.hands[k % self.players].pop()
-            self.pot.append(card)
+        card = self.hands[self.k % self.player_count].pop(0)
 
-            
-            print(card)
-            input_task = asyncio.create_task(self.monitor_player_input())
+        self.pot.append(card)
+        self.first_slap_flag = False
 
-            await asyncio.sleep( random.uniform(0.5, 1.5) )
+        return card
 
-            if not input_task.done():
-                input_task.cancel()
-            else:
-                quickest_player = await input_task
 
-                if card[0] == 'hearts':
-                    self.hands[quickest_player] += self.pot
-                    self.pot = []
-                    print(f'good slap')
-                else:
-                    print(f'bad slap')
+    def resolve_slap(self, player_id):
 
-            k += 1
-            scores = [len(x) for x in self.hands]
-            print(scores, '\n')
+        #ToDo : verify player_id validity
 
-            if len(self.pot) == 52:
+        if self.first_slap_flag == True :
+            return False
+
+        # ToDo : Make a separate method that abstracts slap validity
+        if self.pot[-1][1] == 'hearts':
+            self.first_slap_flag == True
+
+            player_ind = self.player_list.index(player_id)
+
+            self.hands[player_ind] += self.pot
+            self.pot = []
+
+            return True
+
+        return False
+
+
+    def update_game_status(self):
+
+        if len(self.pot) == 52:
+            self.win_condition_flag = True
+
+        for i, hand in enumerate(self.hands) :
+            if len(hand) == 52 :
                 self.win_condition_flag = True
-
-            for hand in self.hands :
-                if len(hand) == 52 :
-                    self.win_condition_flag = True
+                self.winner = self.player_list[i]
 
 
-async def start_slap_game():
-    game = SlapCard()
-    game.deal()
-    await game.start_game()
-
-#asyncio.run(start_slap_game())
 
 
-'''
-token_name = 'TELEGRAM_TAD_KEY'
-token = os.environ.get(token_name)
-
-# Create the Application and pass it your bot's token.
-application = Application.builder().token(token).build()
-
-'''
+    '''
+    def deal(self):
+        self.hands = [[] for x in range(self.player_count)]
+        for i, card in enumerate(self.deck):
+            self.hands[i % self.player_count].append(card)
+    '''
