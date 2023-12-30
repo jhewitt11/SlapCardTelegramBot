@@ -28,7 +28,7 @@ class GameBot:
         self.application.add_handler(CommandHandler("start", self.enroll_start))
         self.application.add_handler(CommandHandler("stop", self.enroll_stop))
         self.application.add_handler(CommandHandler('join', self.join))
-        # TODO self.application.add_handler(CommandHandler('leave', self.leave))
+        self.application.add_handler(CommandHandler('leave', self.leave))
 
         self.application.add_handler(CommandHandler("slap", self.slap))
 
@@ -52,6 +52,24 @@ class GameBot:
         for job in current_jobs:
             job.schedule_removal()
         return True
+
+    async def info(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Sends explanation on how to use the bot."""
+
+        text_l = [
+        "Welcome to Slap Card! Use /start <seconds> to start a signup period for the next Slap Card game.\n\n",
+        "Use /join and /leave during the signup period to reserve your seat or give it up.\n\n",
+        "After <seconds> there will be a few instructions and then the game will begin.\n\n",
+        "Race the other players to /slap valid cards first and win the pot!\n\n",
+        "Valid cards will be announced before each round."
+        ]
+
+
+        all_text = ""
+        for text in text_l : 
+            all_text += text
+
+        await update.message.reply_text(all_text)
 
     async def game_start(self, context: ContextTypes.DEFAULT_TYPE):
 
@@ -78,25 +96,14 @@ class GameBot:
         else :
             await context.bot.send_message(context.job.chat_id, text = f'Player {self.game.winner} wins!')
 
-    async def slap(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-
-        # identify which player slapped
-        user_id = update.message.from_user.id
-
-        if self.game.resolve_slap(user_id):
-            #await context.bot.send_message(context.job.chat_id, text = 'good slap')
-            await update.effective_message.reply_text('good slap')
-
-        #else :
-            #await update.effective_message.reply_text('bad slap')
-
-
-
-        return
-
     async def game_wrapper(self, context: ContextTypes.DEFAULT_TYPE):
 
         player_list = list(self.enrolled.keys())
+
+        # manage no enrollees
+        if player_list == [] :
+            await context.bot.send_message(context.job.chat_id, text= "The signup period has ended. No one signed up.")
+            return
 
         chat_message = f'The signup period has ended. The game will begin shortly.\n\nPlayers enrolled : \n'
 
@@ -117,38 +124,32 @@ class GameBot:
 
         await asyncio.sleep(2)
 
-
-        #
-        # Prepare game.
-        # 
         self.game = SlapCard()
         self.game.prepare_game(player_list)
 
-        #
-        # Start game.
         await self.game_start(context)
 
         # clean up game
         self.game = None
         self.enrolled = {}
 
-    async def info(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Sends explanation on how to use the bot."""
+        return
 
-        text_l = [
-        "Welcome to Slap Card! Use /start <seconds> to start a signup period for the next Slap Card game.\n\n",
-        "Use /join and /leave during the signup period to reserve your seat or give it up.\n\n",
-        "After <seconds> there will be a few instructions and then the game will begin.\n\n",
-        "Race the other players to /slap valid cards first and win the pot!\n\n",
-        "Valid cards will be announced before each round."
-        ]
+    async def slap(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+        # identify which player slapped
+        user_id = update.message.from_user.id
+
+        if self.game.resolve_slap(user_id):
+            #await context.bot.send_message(context.job.chat_id, text = 'good slap')
+            await update.effective_message.reply_text('good slap')
+
+        #else :
+            #await update.effective_message.reply_text('bad slap')
 
 
-        all_text = ""
-        for text in text_l : 
-            all_text += text
 
-        await update.message.reply_text(all_text)
+        return
 
     async def enroll_start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         '''
@@ -216,8 +217,6 @@ class GameBot:
                 logger.info(f'{update.message.from_user.id} joined!')
 
         return
-
-
 
     async def leave(self, update : Update, context : ContextTypes.DEFAULT_TYPE):
         '''
